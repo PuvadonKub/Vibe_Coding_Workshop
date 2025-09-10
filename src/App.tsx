@@ -7,6 +7,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import { CategoryList } from "./components/CategoryList";
+import { ProductList } from "./components/ProductList";
 
 const queryClient = new QueryClient();
 
