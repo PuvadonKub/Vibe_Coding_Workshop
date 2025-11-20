@@ -1,8 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import auth
 
-app = FastAPI(title="Student Marketplace API")
+from app.routers import auth
+
+# Create FastAPI application
+app = FastAPI(
+    title="Student Marketplace API",
+    description="A marketplace API for students to buy and sell items",
+    version="1.0.0"
+)
 
 # Configure CORS
 app.add_middleware(
@@ -18,4 +24,8 @@ app.include_router(auth.router)
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Student Marketplace API"}
+    return {
+        "message": "Welcome to Student Marketplace API",
+        "version": "1.0.0",
+        "docs": "/docs"
+    }

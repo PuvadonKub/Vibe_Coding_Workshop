@@ -49,7 +49,7 @@
   - Configure `env.py` with models import
 - [x] **Create Initial Migration**
   ```bash
-  alembic revision --autogenerate -m "initial"
+  alembic revision --autogenerate -m "Initial migration"
   alembic upgrade head
   ```
 

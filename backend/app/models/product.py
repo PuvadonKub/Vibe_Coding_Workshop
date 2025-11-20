@@ -1,5 +1,4 @@
 from sqlalchemy import Column, String, DateTime, Float, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
@@ -9,16 +8,16 @@ from ..database import Base
 class Product(Base):
     __tablename__ = "products"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    title = Column(String, index=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = Column(String, index=True, nullable=False)
     description = Column(String)
-    price = Column(Float)
-    seller_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
-    category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"))
-    status = Column(String, default="available")  # "available", "sold", "pending"
-    image_url = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    price = Column(Float, nullable=False)
+    seller_id = Column(String, ForeignKey("users.id"), nullable=False)
+    category_id = Column(String, ForeignKey("categories.id"), nullable=False)
+    status = Column(String, default="available", nullable=False)  # "available", "sold", "pending"
+    image_url = Column(String)  # URL for product image
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     seller = relationship("User", back_populates="products")

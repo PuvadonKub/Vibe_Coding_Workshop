@@ -4,14 +4,23 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
 
+# Database configuration
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./student_marketplace.db")
 
+# Create engine with SQLite optimizations
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    SQLALCHEMY_DATABASE_URL, 
+    connect_args={"check_same_thread": False},
+    echo=False  # Set to True for SQL logging during development
 )
+
+# Session configuration
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Base class for models
 Base = declarative_base()
 
 # Dependency to get DB session
@@ -21,3 +30,8 @@ def get_db():
         yield db
     finally:
         db.close()
+
+# Function to create all tables
+def create_tables():
+    """Create all database tables"""
+    Base.metadata.create_all(bind=engine)
