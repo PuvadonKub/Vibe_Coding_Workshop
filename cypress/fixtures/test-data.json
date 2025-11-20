@@ -1,0 +1,52 @@
+{
+  "users": [
+    {
+      "username": "testuser1",
+      "email": "testuser1@example.com",
+      "password": "password123"
+    },
+    {
+      "username": "testuser2", 
+      "email": "testuser2@example.com",
+      "password": "password123"
+    }
+  ],
+  "products": [
+    {
+      "title": "Test Laptop",
+      "description": "A great laptop for students",
+      "price": 599.99,
+      "category": "Electronics"
+    },
+    {
+      "title": "Programming Textbook",
+      "description": "Essential CS textbook", 
+      "price": 49.99,
+      "category": "Textbooks"
+    },
+    {
+      "title": "Desk Chair",
+      "description": "Comfortable study chair",
+      "price": 129.99,
+      "category": "Furniture"
+    }
+  ],
+  "categories": [
+    {
+      "name": "Electronics",
+      "description": "Electronic devices and gadgets"
+    },
+    {
+      "name": "Textbooks", 
+      "description": "Academic textbooks and materials"
+    },
+    {
+      "name": "Furniture",
+      "description": "Furniture for dorms and apartments"
+    },
+    {
+      "name": "Clothing",
+      "description": "Clothing and accessories"
+    }
+  ]
+}

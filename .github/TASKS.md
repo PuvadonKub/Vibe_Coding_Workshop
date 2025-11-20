@@ -300,20 +300,23 @@
 ## Phase 9: Integration Testing
 
 ### 9.1 End-to-End Tests
-- [ ] **Setup Cypress/Playwright**
+- [x] **Setup Cypress/Playwright**
   ```bash
   npm install -D cypress @cypress/vite-dev-server
   ```
 
-- [ ] **User Journey Tests**
+- [x] **User Journey Tests**
   - File: `cypress/e2e/user-journey.cy.ts`
   - Complete registration → login → create product → view product flow
+  - Image upload feature tests (`cypress/e2e/image-upload.cy.ts`)
+  - Advanced search and filtering tests (`cypress/e2e/search-filter.cy.ts`)
 
 ### 9.2 API Integration Tests
-- [ ] **Backend Integration Tests**
+- [x] **Backend Integration Tests**
   - File: `backend/tests/test_integration.py`
-  - Test complete API workflows
-  - Test database transactions
+  - Test complete API workflows and database transactions
+  - File: `backend/tests/test_api_workflows.py`
+  - Test specific API workflows and edge cases
 
 ## Phase 10: Performance & Security
 
