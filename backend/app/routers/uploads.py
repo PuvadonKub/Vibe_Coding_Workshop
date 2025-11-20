@@ -7,8 +7,16 @@ from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from fastapi.responses import FileResponse
-from PIL import Image
-import aiofiles
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+try:
+    import aiofiles
+    AIOFILES_AVAILABLE = True
+except ImportError:
+    AIOFILES_AVAILABLE = False
 
 from ..dependencies import get_current_user
 from ..models.user import User
@@ -61,12 +69,23 @@ async def save_image_with_sizes(
     file_path = IMAGES_DIRECTORY / filename
     
     # Save original file
-    async with aiofiles.open(file_path, 'wb') as f:
-        content = await file.read()
-        await f.write(content)
+    if AIOFILES_AVAILABLE:
+        async with aiofiles.open(file_path, 'wb') as f:
+            content = await file.read()
+            await f.write(content)
+    else:
+        # Fallback to synchronous file operations
+        with open(file_path, 'wb') as f:
+            content = await file.read()
+            f.write(content)
     
     # Generate different sizes
     image_urls = {}
+    
+    if not PIL_AVAILABLE:
+        # If PIL is not available, just return the original image URL
+        image_urls['original'] = f"/upload/images/{filename}"
+        return image_urls
     
     try:
         with Image.open(file_path) as img:
@@ -125,8 +144,12 @@ async def upload_image(
         # Save image with multiple sizes
         image_urls = await save_image_with_sizes(file, unique_filename)
         
+        message = "Image uploaded successfully"
+        if not PIL_AVAILABLE:
+            message += " (image resizing not available - PIL/Pillow not installed)"
+        
         return {
-            "message": "Image uploaded successfully",
+            "message": message,
             "filename": unique_filename,
             "urls": image_urls
         }

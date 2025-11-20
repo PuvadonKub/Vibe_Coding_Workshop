@@ -15,7 +15,11 @@ from sqlalchemy.orm import sessionmaker
 import tempfile
 import os
 from pathlib import Path
-from PIL import Image
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 import io
 import json
 
@@ -280,7 +284,10 @@ class TestIntegrationWorkflows:
         category_response = client.post("/categories/", json=test_category_data, headers=headers)
         category_id = category_response.json()["id"]
         
-        # Create a test image
+        # Create a test image (skip if PIL not available)
+        if not PIL_AVAILABLE:
+            pytest.skip("PIL/Pillow not available for image tests")
+        
         img = Image.new('RGB', (800, 600), color='red')
         img_bytes = io.BytesIO()
         img.save(img_bytes, format='JPEG')

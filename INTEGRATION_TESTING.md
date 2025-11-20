@@ -244,6 +244,13 @@ npx cypress run --headed --no-exit
 2. **Database Locks:** SQLite database locks can occur with concurrent tests
 3. **Timeout Issues:** Increase timeout values for slow operations
 4. **Test Data Cleanup:** Ensure test data is properly cleaned between runs
+5. **TestClient Compatibility:** Current httpx/starlette versions may have compatibility issues
+   - If TestClient fails with "unexpected keyword argument 'app'", use `test_simple_integration.py`
+   - Consider downgrading httpx to 0.24.x for full TestClient support
+6. **Optional Dependencies:** 
+   - PIL/Pillow is optional for image processing
+   - aiofiles is optional for async file operations
+   - Tests will run without these dependencies but with limited functionality
 
 ### Debug Commands
 ```bash

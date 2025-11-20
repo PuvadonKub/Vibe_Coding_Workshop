@@ -1,10 +1,11 @@
 """
-Product management API routes
+Product management API routes with performance optimizations
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
 from typing import List, Optional
+import logging
 
 from ..database import get_db
 from ..models.user import User
@@ -15,11 +16,15 @@ from ..schemas.product import (
     ProductListResponse, ProductFilter
 )
 from ..dependencies import get_current_user
+from ..utils.query_optimizer import OptimizedQueries, QueryOptimizer
+from ..utils.cache import cache_products, cache_categories, invalidate_product_cache
 
 router = APIRouter(prefix="/products", tags=["products"])
+logger = logging.getLogger(__name__)
 
 
 @router.get("/", response_model=ProductListResponse)
+@cache_products(ttl=300)  # Cache for 5 minutes
 async def get_products(
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(10, ge=1, le=100, description="Items per page"),
@@ -29,55 +34,36 @@ async def get_products(
     status: Optional[str] = Query("available", pattern="^(available|sold|pending|all)$", description="Filter by status"),
     search: Optional[str] = Query(None, max_length=100, description="Search in title and description"),
     seller_id: Optional[str] = Query(None, description="Filter by seller ID"),
+    sort_by: str = Query("created_at", description="Sort by field"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order"),
     db: Session = Depends(get_db)
 ) -> ProductListResponse:
     """
-    Get paginated list of products with optional filtering
+    Get paginated list of products with optional filtering using optimized queries
     """
-    # Build query
-    query = db.query(Product)
+    # Calculate offset
+    skip = (page - 1) * per_page
     
-    # Apply filters
-    filters = []
+    # Use optimized query method
+    products, total_count = OptimizedQueries.get_products_with_pagination(
+        db=db,
+        skip=skip,
+        limit=per_page,
+        category_id=category_id,
+        min_price=min_price,
+        max_price=max_price,
+        search=search,
+        status=status if status != "all" else "available",
+        sort_by=sort_by,
+        sort_order=sort_order
+    )
     
-    if category_id:
-        filters.append(Product.category_id == category_id)
-    
-    if min_price is not None:
-        filters.append(Product.price >= min_price)
-    
-    if max_price is not None:
-        filters.append(Product.price <= max_price)
-    
-    if status and status != "all":
-        filters.append(Product.status == status)
-    
-    if seller_id:
-        filters.append(Product.seller_id == seller_id)
-    
-    if search:
-        search_filter = or_(
-            Product.title.ilike(f"%{search}%"),
-            Product.description.ilike(f"%{search}%")
-        )
-        filters.append(search_filter)
-    
-    if filters:
-        query = query.filter(and_(*filters))
-    
-    # Get total count
-    total = query.count()
-    
-    # Calculate pagination
-    total_pages = (total + per_page - 1) // per_page
-    offset = (page - 1) * per_page
-    
-    # Apply pagination and order
-    products = query.order_by(Product.created_at.desc()).offset(offset).limit(per_page).all()
+    # Calculate pagination info
+    total_pages = (total_count + per_page - 1) // per_page
     
     return ProductListResponse(
         products=[ProductResponse.model_validate(p) for p in products],
-        total=total,
+        total=total_count,
         page=page,
         per_page=per_page,
         total_pages=total_pages
@@ -129,6 +115,10 @@ async def create_product(
         db.add(product)
         db.commit()
         db.refresh(product)
+        
+        # Invalidate relevant caches
+        invalidate_product_cache()
+        
         return ProductResponse.model_validate(product)
     except Exception as e:
         db.rollback()
@@ -180,6 +170,10 @@ async def update_product(
     try:
         db.commit()
         db.refresh(product)
+        
+        # Invalidate relevant caches
+        invalidate_product_cache(product.id)
+        
         return ProductResponse.model_validate(product)
     except Exception as e:
         db.rollback()
