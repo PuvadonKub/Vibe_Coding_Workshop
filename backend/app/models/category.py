@@ -13,6 +13,7 @@ class Category(Base):
     name = Column(String, unique=True, index=True)
     description = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     products = relationship("Product", back_populates="category")

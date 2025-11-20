@@ -15,8 +15,10 @@ class Product(Base):
     price = Column(Float)
     seller_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.id"))
-    status = Column(String)  # e.g., "available", "sold", "pending"
+    status = Column(String, default="available")  # "available", "sold", "pending"
+    image_url = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     seller = relationship("User", back_populates="products")

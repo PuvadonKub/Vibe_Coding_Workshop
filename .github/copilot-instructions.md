@@ -2,11 +2,11 @@
 
 ## 🎯 Project Overview
 This is a Student Marketplace web application built with:
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Frontend**: Vite + TypeScript + React + shadcn-ui + Tailwind CSS
+- **Backend**: FastAPI + Python (Alternative: Node.js/Express)
+- **Database**: Prisma ORM + SQLite3
+- **Authentication**: JWT tokens
+- **Testing**: Jest + React Testing Library + Pytest
 
 ## 📝 Coding Standards
 
@@ -57,19 +57,66 @@ const handleData = (data: any) => { ... }
 - Implement responsive design patterns
 - Maintain design system tokens
 
-## 🔒 Security Guidelines
+## �️ Database & Prisma Guidelines
+
+### Prisma Best Practices
+```typescript
+// ✅ DO: Use Prisma client properly
+const user = await prisma.user.findUnique({
+  where: { id: userId },
+  include: { products: true }
+});
+
+// ✅ DO: Handle database errors
+try {
+  const product = await prisma.product.create({ data: productData });
+} catch (error) {
+  console.error('Database error:', error);
+  throw new Error('Failed to create product');
+}
+
+// ❌ DON'T: Expose raw database errors to client
+catch (error) {
+  res.json({ error: error.message }); // Raw database error
+}
+```
+
+### Schema Design
+- Use meaningful field names
+- Implement proper relationships
+- Add appropriate indexes
+- Use enum types for status fields
+- Always include timestamps (createdAt, updatedAt)
+
+## �🔒 Security Guidelines
 
 ### Data Handling
 - Never expose sensitive data in code
-- Validate all user inputs
-- Use proper authentication checks
+- Validate all user inputs with Zod schemas
+- Use proper authentication checks (JWT)
 - Implement proper error boundaries
+- Hash passwords with bcrypt
+- Use environment variables for secrets
 
 ### API Integration
 - Use proper error handling
 - Implement request timeout
 - Follow RESTful practices
 - Use proper type checking
+- Validate API responses
+- Implement rate limiting
+
+### Authentication & Authorization
+```typescript
+// ✅ DO: Validate JWT tokens
+const token = req.headers.authorization?.replace('Bearer ', '');
+const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+// ✅ DO: Check user permissions
+if (decoded.userId !== resource.ownerId) {
+  throw new Error('Unauthorized');
+}
+```
 
 ## 💻 Development Workflow
 
@@ -109,11 +156,51 @@ const prd = getProduct();
 
 ## 🧪 Testing Guidelines
 
-### Unit Testing
-- Write tests for components
-- Test business logic
-- Cover edge cases
-- Use React Testing Library
+### Frontend Testing
+```typescript
+// ✅ DO: Test component behavior
+describe('ProductCard', () => {
+  it('displays product information correctly', () => {
+    const product = { id: '1', title: 'Test Product', price: 99.99 };
+    render(<ProductCard product={product} />);
+    expect(screen.getByText('Test Product')).toBeInTheDocument();
+    expect(screen.getByText('$99.99')).toBeInTheDocument();
+  });
+});
+
+// ✅ DO: Test user interactions
+it('calls onSelect when clicked', () => {
+  const onSelect = jest.fn();
+  render(<ProductCard product={product} onSelect={onSelect} />);
+  fireEvent.click(screen.getByText('View Details'));
+  expect(onSelect).toHaveBeenCalledWith('1');
+});
+```
+
+### Backend Testing
+```python
+# ✅ DO: Test API endpoints
+def test_create_product():
+    response = client.post("/products/", json={
+        "title": "Test Product",
+        "price": 99.99,
+        "sellerId": "user-123"
+    })
+    assert response.status_code == 201
+    assert response.json()["title"] == "Test Product"
+
+# ✅ DO: Test database operations
+def test_user_creation():
+    user = User.create(username="testuser", email="test@example.com")
+    assert user.id is not None
+    assert user.username == "testuser"
+```
+
+### Integration Testing
+- Test complete user workflows
+- Test API integration with frontend
+- Test database transactions
+- Test authentication flows
 
 ## 📚 Additional Resources
 
@@ -143,19 +230,56 @@ const prd = getProduct();
    - [ ] Handles sensitive data appropriately
    - [ ] Uses secure API calls
 
+## 🎯 Project-Specific Rules
+
+### Student Marketplace Features
+```typescript
+// ✅ DO: Create reusable marketplace components
+interface MarketplaceItemProps {
+  item: Product | Service;
+  seller: User;
+  onPurchase: (itemId: string) => void;
+}
+
+// ✅ DO: Implement proper product categories
+enum ProductCategory {
+  TEXTBOOKS = 'textbooks',
+  ELECTRONICS = 'electronics',
+  FURNITURE = 'furniture',
+  CLOTHING = 'clothing'
+}
+```
+
+### File Organization
+- Components: `/src/components/marketplace/`
+- Pages: `/src/pages/`
+- Types: `/src/types/`
+- Utils: `/src/lib/`
+- API Routes: `/src/pages/api/` or `/backend/app/`
+
 ## 🚫 Prohibited Practices
 
 1. Never commit:
-   - API keys or secrets
+   - API keys or secrets (.env files)
    - Personal information
    - Unhandled errors
    - Testing credentials
+   - Database files (*.db)
+   - Build artifacts
 
 2. Avoid:
-   - Inline styles (use Tailwind)
-   - Any type in TypeScript
-   - Direct DOM manipulation
+   - Inline styles (use Tailwind CSS)
+   - `any` type in TypeScript
+   - Direct DOM manipulation (use React patterns)
    - Unnecessary dependencies
+   - Hardcoded URLs or endpoints
+   - Unvalidated user inputs
+
+3. Code Quality:
+   - No console.log in production code
+   - No unused imports or variables
+   - No magic numbers (use constants)
+   - No nested ternary operators
 
 ## 🔄 Version Control
 
