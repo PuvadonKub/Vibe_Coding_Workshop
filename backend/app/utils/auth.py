@@ -3,10 +3,12 @@ Authentication utilities for password hashing and JWT token management
 """
 import os
 from datetime import datetime, timedelta
-from typing import Optional, Union
+from typing import Optional
 from passlib.context import CryptContext
 from jose import JWTError, jwt
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -15,6 +17,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 SECRET_KEY = os.getenv("JWT_SECRET", "your-super-secret-key-here")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# HTTP Bearer security scheme
+security = HTTPBearer()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -118,3 +123,59 @@ def get_user_id_from_token(token: str) -> str:
         )
     
     return user_id
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(lambda: None)
+):
+    """
+    Get current authenticated user from JWT token
+    
+    Args:
+        credentials: HTTP Bearer token credentials
+        db: Database session
+        
+    Returns:
+        User: The authenticated user
+        
+    Raises:
+        HTTPException: If authentication fails
+    """
+    from ..database import get_db
+    from ..models.user import User
+    
+    # Import get_db function and get a session
+    get_db_func = get_db
+    if db is None:
+        db = next(get_db_func())
+    
+    try:
+        # Extract and verify token
+        token = credentials.credentials
+        payload = verify_token(token)
+        user_id: str = payload.get("sub")
+        
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Get user from database
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return user

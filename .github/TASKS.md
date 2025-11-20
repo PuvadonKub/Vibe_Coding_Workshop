@@ -74,12 +74,12 @@
   - GET `/auth/me` - Get current user
 
 ### 2.2 Authentication Testing
-- [ ] **Unit Tests for Auth Utils**
+- [x] **Unit Tests for Auth Utils**
   - File: `backend/tests/test_auth_utils.py`
   - Test password hashing
   - Test token generation/validation
 
-- [ ] **Integration Tests for Auth Endpoints**
+- [x] **Integration Tests for Auth Endpoints**
   - File: `backend/tests/test_auth_endpoints.py`
   - Test user registration flow
   - Test login/logout functionality
@@ -88,14 +88,14 @@
 ## Phase 3: API Endpoints Development
 
 ### 3.1 User Management API
-- [ ] **User Router Implementation**
+- [x] **User Router Implementation**
   - File: `backend/app/routers/users.py`
   - GET `/users/profile` - Get user profile
   - PUT `/users/profile` - Update user profile
   - DELETE `/users/profile` - Delete user account
 
 ### 3.2 Product Management API
-- [ ] **Product Router Implementation**
+- [x] **Product Router Implementation**
   - File: `backend/app/routers/products.py`
   - GET `/products` - List products with pagination/filtering
   - GET `/products/{id}` - Get product details
@@ -104,20 +104,20 @@
   - DELETE `/products/{id}` - Delete product (owner only)
 
 ### 3.3 Category Management API
-- [ ] **Category Router Implementation**
+- [x] **Category Router Implementation**
   - File: `backend/app/routers/categories.py`
   - GET `/categories` - List all categories
   - GET `/categories/{id}/products` - Get products by category
   - POST `/categories` - Create category (admin only)
 
 ### 3.4 API Testing
-- [ ] **Product API Tests**
+- [x] **Product API Tests**
   - File: `backend/tests/test_products.py`
   - Test CRUD operations
   - Test authorization checks
   - Test data validation
 
-- [ ] **Category API Tests**
+- [x] **Category API Tests**
   - File: `backend/tests/test_categories.py`
   - Test category listing
   - Test product filtering by category
