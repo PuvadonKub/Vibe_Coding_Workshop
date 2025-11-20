@@ -15,7 +15,8 @@ class ProductBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, description="Product title")
     description: Optional[str] = Field(None, max_length=2000, description="Product description")
     price: float = Field(..., gt=0, description="Product price must be greater than 0")
-    image_url: Optional[str] = Field(None, description="URL for product image")
+    image_url: Optional[str] = Field(None, description="URL for product image (legacy)")
+    images: Optional[List[str]] = Field(None, max_items=5, description="Array of image filenames")
     status: str = Field(default="available", pattern="^(available|sold|pending)$", description="Product status")
 
 
@@ -30,6 +31,7 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=2000)
     price: Optional[float] = Field(None, gt=0)
     image_url: Optional[str] = Field(None)
+    images: Optional[List[str]] = Field(None, max_items=5)
     status: Optional[str] = Field(None, pattern="^(available|sold|pending)$")
     category_id: Optional[str] = Field(None)
 

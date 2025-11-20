@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, Float, ForeignKey
+from sqlalchemy import Column, String, DateTime, Float, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
@@ -15,7 +15,8 @@ class Product(Base):
     seller_id = Column(String, ForeignKey("users.id"), nullable=False)
     category_id = Column(String, ForeignKey("categories.id"), nullable=False)
     status = Column(String, default="available", nullable=False)  # "available", "sold", "pending"
-    image_url = Column(String)  # URL for product image
+    image_url = Column(String)  # URL for product image (legacy)
+    images = Column(JSON)  # Array of image filenames
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

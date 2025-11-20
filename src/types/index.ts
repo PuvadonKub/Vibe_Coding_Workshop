@@ -48,6 +48,7 @@ export interface Product {
   description?: string;
   price: number;
   image_url?: string;
+  images?: string[];
   status: ProductStatus;
   seller_id: string;
   category_id: string;
@@ -65,6 +66,7 @@ export interface ProductCreate {
   description?: string;
   price: number;
   image_url?: string;
+  images?: string[];
   status?: ProductStatus;
   category_id: string;
 }
@@ -74,6 +76,7 @@ export interface ProductUpdate {
   description?: string;
   price?: number;
   image_url?: string;
+  images?: string[];
   status?: ProductStatus;
   category_id?: string;
 }
@@ -180,6 +183,7 @@ export interface ProductFormData {
   description?: string;
   price: number;
   image_url?: string;
+  images?: string[];
   category_id: string;
 }
 

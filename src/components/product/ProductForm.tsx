@@ -43,6 +43,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import ImageUpload from '@/components/upload/ImageUpload';
 
 import { api, queryKeys } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -74,6 +75,10 @@ const productSchema = z.object({
   category_id: z
     .string()
     .min(1, 'Category is required'),
+  images: z
+    .array(z.string())
+    .max(5, 'Maximum 5 images allowed')
+    .default([]),
   image_url: z
     .string()
     .url('Please enter a valid URL')
@@ -106,8 +111,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [isUploading, setIsUploading] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(product?.image_url || null);
+
 
   const isEditing = Boolean(product);
 
@@ -119,6 +123,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       description: product?.description || '',
       price: product?.price || 0,
       category_id: product?.category_id || '',
+      images: product?.images || [],
       image_url: product?.image_url || '',
     },
   });
@@ -156,16 +161,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     },
   });
 
-  const uploadMutation = useMutation({
-    mutationFn: (file: File) => api.uploadImage(file),
-    onSuccess: (response) => {
-      form.setValue('image_url', response.image_url);
-      setPreviewImage(response.image_url);
-    },
-    onError: () => {
-      // Handle upload error
-    },
-  });
+
 
   // Handlers
   const onSubmit = async (data: ProductFormData) => {
@@ -176,6 +172,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         description: data.description || undefined,
         price: Number(data.price),
         category_id: data.category_id,
+        images: data.images.length > 0 ? data.images : undefined,
         image_url: data.image_url || undefined,
       };
 
@@ -189,39 +186,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      form.setError('image_url', { message: 'Please select a valid image file' });
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      form.setError('image_url', { message: 'Image size must be less than 5MB' });
-      return;
-    }
-
-    setIsUploading(true);
-    try {
-      await uploadMutation.mutateAsync(file);
-    } catch (error) {
-      form.setError('image_url', { message: 'Failed to upload image. Please try again.' });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const removeImage = () => {
-    form.setValue('image_url', '');
-    setPreviewImage(null);
-  };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
-  const error = createMutation.error || updateMutation.error || uploadMutation.error;
+  const error = createMutation.error || updateMutation.error;
 
   return (
     <Card className={className}>
@@ -353,83 +321,43 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             {/* Image Upload */}
             <FormField
               control={form.control}
+              name="images"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Product Images</FormLabel>
+                  <FormControl>
+                    <ImageUpload
+                      value={field.value}
+                      onChange={field.onChange}
+                      maxFiles={5}
+                      maxFileSize={5}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Upload up to 5 product images (max 5MB each)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Legacy Image URL (optional) */}
+            <FormField
+              control={form.control}
               name="image_url"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Product Image</FormLabel>
+                  <FormLabel>Image URL (Legacy)</FormLabel>
                   <FormControl>
-                    <div className="space-y-4">
-                      {/* Preview */}
-                      {previewImage && (
-                        <div className="relative w-32 h-32 border border-gray-200 rounded-lg overflow-hidden">
-                          <img
-                            src={previewImage}
-                            alt="Product preview"
-                            className="w-full h-full object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            className="absolute top-1 right-1"
-                            onClick={removeImage}
-                            disabled={isLoading}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Upload Options */}
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        {/* File Upload */}
-                        <div className="flex-1">
-                          <Label htmlFor="image-upload" className="cursor-pointer">
-                            <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
-                              {isUploading ? (
-                                <div className="flex flex-col items-center">
-                                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                                  <span className="text-sm text-muted-foreground">Uploading...</span>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center">
-                                  <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                                  <span className="text-sm text-muted-foreground">
-                                    Click to upload image
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </Label>
-                          <Input
-                            id="image-upload"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleImageUpload}
-                            disabled={isLoading || isUploading}
-                          />
-                        </div>
-
-                        {/* URL Input */}
-                        <div className="flex-1">
-                          <Input
-                            placeholder="Or paste image URL"
-                            value={field.value}
-                            onChange={(e) => {
-                              field.onChange(e.target.value);
-                              if (e.target.value) {
-                                setPreviewImage(e.target.value);
-                              }
-                            }}
-                            disabled={isLoading}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                    <Input
+                      placeholder="Optional: paste image URL"
+                      {...field}
+                      disabled={isLoading}
+                    />
                   </FormControl>
                   <FormDescription>
-                    Upload an image or provide a URL (max 5MB)
+                    For backward compatibility - use image upload above instead
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

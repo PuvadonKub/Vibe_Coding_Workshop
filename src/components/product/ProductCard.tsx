@@ -113,8 +113,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <CardContent className="p-4">
           <div className="flex gap-3">
             {/* Product Image */}
-            <div className="w-20 h-20 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
-              {product.image_url ? (
+            <div className="w-20 h-20 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 relative">
+              {product.images && product.images.length > 0 ? (
+                <div className="relative w-full h-full">
+                  <img
+                    src={`/api/upload/images/${product.images[0]}?size=thumbnail`}
+                    alt={product.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to image_url if new image system fails
+                      if (product.image_url) {
+                        (e.target as HTMLImageElement).src = product.image_url;
+                      }
+                    }}
+                  />
+                  {product.images.length > 1 && (
+                    <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1 rounded">
+                      +{product.images.length - 1}
+                    </div>
+                  )}
+                </div>
+              ) : product.image_url ? (
                 <img
                   src={product.image_url}
                   alt={product.title}
@@ -163,8 +182,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <Card className={`group hover:shadow-lg transition-all duration-300 ${className}`}>
         <div className="relative">
           {/* Product Image */}
-          <div className="aspect-[4/3] overflow-hidden rounded-t-lg">
-            {product.image_url ? (
+          <div className="aspect-[4/3] overflow-hidden rounded-t-lg relative">
+            {product.images && product.images.length > 0 ? (
+              <div className="relative w-full h-full">
+                <img
+                  src={`/api/upload/images/${product.images[0]}?size=large`}
+                  alt={product.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    // Fallback to image_url if new image system fails
+                    if (product.image_url) {
+                      (e.target as HTMLImageElement).src = product.image_url;
+                    }
+                  }}
+                />
+                {product.images.length > 1 && (
+                  <div className="absolute bottom-3 right-3 bg-black/70 text-white text-sm px-3 py-1 rounded">
+                    +{product.images.length - 1} more
+                  </div>
+                )}
+              </div>
+            ) : product.image_url ? (
               <img
                 src={product.image_url}
                 alt={product.title}
@@ -286,8 +324,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     <Card className={`group hover:shadow-md transition-shadow ${className}`}>
       <div className="relative">
         {/* Product Image */}
-        <div className="aspect-square overflow-hidden rounded-t-lg">
-          {product.image_url ? (
+        <div className="aspect-square overflow-hidden rounded-t-lg relative">
+          {product.images && product.images.length > 0 ? (
+            <div className="relative w-full h-full">
+              <img
+                src={`/api/upload/images/${product.images[0]}?size=medium`}
+                alt={product.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                onError={(e) => {
+                  // Fallback to image_url if new image system fails
+                  if (product.image_url) {
+                    (e.target as HTMLImageElement).src = product.image_url;
+                  }
+                }}
+              />
+              {product.images.length > 1 && (
+                <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                  +{product.images.length - 1} more
+                </div>
+              )}
+            </div>
+          ) : product.image_url ? (
             <img
               src={product.image_url}
               alt={product.title}
