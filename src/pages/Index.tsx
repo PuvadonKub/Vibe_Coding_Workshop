@@ -1,8 +1,8 @@
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/layout/Navbar";
 import Hero from "@/components/Hero";
 import FeaturedListings from "@/components/FeaturedListings";
 import Marketplace from "@/components/Marketplace";
-import Footer from "@/components/Footer";
+import Footer from "@/components/layout/Footer";
 
 const Index = () => {
   return (
