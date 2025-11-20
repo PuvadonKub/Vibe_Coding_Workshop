@@ -5,7 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
+
+// Import all pages
 import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Home from "./pages/Home";
+import ProductDetails from "./pages/ProductDetails";
+import MyProducts from "./pages/MyProducts";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -35,9 +42,25 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              {/* Landing page */}
               <Route path="/" element={<Index />} />
+              
+              {/* Authentication pages */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Main marketplace */}
+              <Route path="/marketplace" element={<Home />} />
+              <Route path="/home" element={<Home />} />
+              
+              {/* Product pages */}
+              <Route path="/products/:id" element={<ProductDetails />} />
+              <Route path="/my-products" element={<MyProducts />} />
+              
+              {/* User pages */}
               <Route path="/profile" element={<Profile />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              
+              {/* Catch-all 404 route - MUST BE LAST */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
