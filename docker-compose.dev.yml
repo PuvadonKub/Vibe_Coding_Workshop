@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # Frontend development service
+  frontend-dev:
+    build:
+      context: .
+      target: development
+    container_name: marketplace-frontend-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - backend-dev
+    networks:
+      - marketplace-dev-network
+    restart: unless-stopped
+
+  # Backend development service
+  backend-dev:
+    build:
+      context: ./backend
+      target: development
+    container_name: marketplace-backend-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./backend/uploads:/app/uploads
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db-dev:5432/marketplace_dev
+      - REDIS_URL=redis://redis-dev:6379/0
+      - ENVIRONMENT=development
+      - SECRET_KEY=development-secret-key-not-for-production
+    depends_on:
+      db-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+    networks:
+      - marketplace-dev-network
+    restart: unless-stopped
+
+  # Development database
+  db-dev:
+    image: postgres:15-alpine
+    container_name: marketplace-db-dev
+    environment:
+      - POSTGRES_DB=marketplace_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - marketplace-dev-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Development Redis
+  redis-dev:
+    image: redis:7-alpine
+    container_name: marketplace-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - marketplace-dev-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Development database admin (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: marketplace-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@marketplace.local
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "8080:80"
+    depends_on:
+      - db-dev
+    networks:
+      - marketplace-dev-network
+    restart: unless-stopped
+    profiles:
+      - admin
+
+  # Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander
+    container_name: marketplace-redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis-dev:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis-dev
+    networks:
+      - marketplace-dev-network
+    restart: unless-stopped
+    profiles:
+      - admin
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+networks:
+  marketplace-dev-network:
+    driver: bridge

@@ -19,27 +19,70 @@ from ..dependencies import get_current_user
 from ..utils.query_optimizer import OptimizedQueries, QueryOptimizer
 from ..utils.cache import cache_products, cache_categories, invalidate_product_cache
 
-router = APIRouter(prefix="/products", tags=["products"])
+router = APIRouter(
+    prefix="/products", 
+    tags=["Products"],
+    responses={
+        404: {"description": "Product not found"},
+        401: {"description": "Authentication required"},
+        403: {"description": "Access forbidden"},
+        422: {"description": "Validation error"}
+    }
+)
 logger = logging.getLogger(__name__)
 
 
-@router.get("/", response_model=ProductListResponse)
+@router.get(
+    "/", 
+    response_model=ProductListResponse,
+    summary="List products",
+    description="Get a paginated list of products with advanced filtering and search capabilities",
+    responses={
+        200: {
+            "description": "List of products with pagination metadata",
+            "model": ProductListResponse,
+        },
+    },
+)
 @cache_products(ttl=300)  # Cache for 5 minutes
 async def get_products(
-    page: int = Query(1, ge=1, description="Page number"),
-    per_page: int = Query(10, ge=1, le=100, description="Items per page"),
-    category_id: Optional[str] = Query(None, description="Filter by category ID"),
-    min_price: Optional[float] = Query(None, ge=0, description="Minimum price filter"),
-    max_price: Optional[float] = Query(None, ge=0, description="Maximum price filter"),
-    status: Optional[str] = Query("available", pattern="^(available|sold|pending|all)$", description="Filter by status"),
-    search: Optional[str] = Query(None, max_length=100, description="Search in title and description"),
-    seller_id: Optional[str] = Query(None, description="Filter by seller ID"),
-    sort_by: str = Query("created_at", description="Sort by field"),
-    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order"),
+    page: int = Query(1, ge=1, description="Page number (starting from 1)"),
+    per_page: int = Query(10, ge=1, le=100, description="Number of items per page (max 100)"),
+    category_id: Optional[str] = Query(None, description="Filter by category UUID"),
+    min_price: Optional[float] = Query(None, ge=0, description="Minimum price filter (inclusive)"),
+    max_price: Optional[float] = Query(None, ge=0, description="Maximum price filter (inclusive)"),
+    status: Optional[str] = Query("available", pattern="^(available|sold|pending|all)$", description="Product status filter"),
+    search: Optional[str] = Query(None, max_length=100, description="Search query for title and description"),
+    seller_id: Optional[str] = Query(None, description="Filter by seller UUID"),
+    sort_by: str = Query("created_at", description="Field to sort by (created_at, price, title)"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order (asc/desc)"),
     db: Session = Depends(get_db)
 ) -> ProductListResponse:
     """
-    Get paginated list of products with optional filtering using optimized queries
+    Retrieve a paginated list of products with comprehensive filtering options.
+    
+    **Features:**
+    - **Pagination**: Control page size and navigate through results
+    - **Search**: Full-text search in product titles and descriptions  
+    - **Filtering**: Filter by category, price range, status, and seller
+    - **Sorting**: Sort by multiple fields in ascending/descending order
+    - **Caching**: Results cached for 5 minutes for optimal performance
+    
+    **Query Parameters:**
+    - `page`: Page number (1-based indexing)
+    - `per_page`: Items per page (1-100, default: 10)
+    - `search`: Search term for title/description matching
+    - `category_id`: Filter by specific category
+    - `min_price`/`max_price`: Price range filtering
+    - `status`: Product availability status
+    - `seller_id`: Filter by specific seller
+    - `sort_by`: Field for sorting (created_at, price, title)
+    - `sort_order`: Sort direction (asc, desc)
+    
+    **Response:**
+    - Array of products with full details
+    - Pagination metadata (total count, pages, current page)
+    - Optimized database queries for fast response times
     """
     # Calculate offset
     skip = (page - 1) * per_page
@@ -70,13 +113,51 @@ async def get_products(
     )
 
 
-@router.get("/{product_id}", response_model=ProductWithDetails)
+@router.get(
+    "/{product_id}", 
+    response_model=ProductWithDetails,
+    summary="Get product details",
+    description="Retrieve detailed information about a specific product",
+    responses={
+        200: {
+            "description": "Product details retrieved successfully",
+            "model": ProductWithDetails,
+        },
+        404: {
+            "description": "Product not found",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Product not found"}
+                }
+            },
+        },
+    },
+)
 async def get_product(
     product_id: str,
     db: Session = Depends(get_db)
 ) -> ProductWithDetails:
     """
-    Get detailed information about a specific product
+    Get comprehensive details for a specific product.
+    
+    **Returns:**
+    - Complete product information including:
+      - Basic details (title, description, price)
+      - Seller information and contact details
+      - Category information
+      - Image URLs and metadata
+      - Creation and update timestamps
+      - Product status and availability
+    
+    **Use Cases:**
+    - Product detail page display
+    - Pre-purchase information gathering
+    - Product sharing and bookmarking
+    
+    **Performance:**
+    - Optimized query with eager loading
+    - Includes related data (seller, category)
+    - Fast response times with database indexing
     """
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
@@ -88,14 +169,66 @@ async def get_product(
     return ProductWithDetails.model_validate(product)
 
 
-@router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", 
+    response_model=ProductResponse, 
+    status_code=status.HTTP_201_CREATED,
+    summary="Create new product",
+    description="Create a new product listing (authentication required)",
+    responses={
+        201: {
+            "description": "Product created successfully",
+            "model": ProductResponse,
+        },
+        400: {
+            "description": "Invalid product data",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Category not found"}
+                }
+            },
+        },
+        401: {
+            "description": "Authentication required",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Not authenticated"}
+                }
+            },
+        },
+    },
+)
 async def create_product(
     product_data: ProductCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> ProductResponse:
     """
-    Create a new product (authenticated users only)
+    Create a new product listing.
+    
+    **Authentication Required:**
+    - Must be logged in with valid JWT token
+    - Product will be associated with authenticated user as seller
+    
+    **Required Fields:**
+    - `title`: Product name (3-100 characters)
+    - `description`: Product description
+    - `price`: Product price (must be positive)
+    - `category_id`: Valid category UUID
+    
+    **Optional Fields:**
+    - `image_url`: Product image URL
+    - `status`: Product status (defaults to 'available')
+    
+    **Validation:**
+    - Category must exist in database
+    - Price must be positive number
+    - Title and description are sanitized for security
+    
+    **Post-Creation:**
+    - Product cache is invalidated
+    - Product appears in search results immediately
+    - Seller can edit/delete the product
     """
     # Verify category exists
     category = db.query(Category).filter(Category.id == product_data.category_id).first()

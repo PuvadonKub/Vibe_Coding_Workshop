@@ -22,13 +22,72 @@ if SLOWAPI_AVAILABLE:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create FastAPI application with enhanced security
+# Create FastAPI application with enhanced security and comprehensive documentation
 app = FastAPI(
     title="Student Marketplace API",
-    description="A secure marketplace API for students to buy and sell items",
+    description="""
+    A comprehensive REST API for the Student Marketplace platform.
+    
+    This API provides endpoints for:
+    - User authentication and management
+    - Product listings and management
+    - Category management
+    - File uploads and image processing
+    - Search and filtering capabilities
+    
+    ## Authentication
+    This API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:
+    `Authorization: Bearer <your_token_here>`
+    
+    ## Rate Limiting
+    API endpoints are rate-limited to prevent abuse. Check response headers for limit information.
+    
+    ## Security
+    All inputs are validated and sanitized. The API includes protection against:
+    - SQL injection
+    - XSS attacks
+    - CSRF attacks
+    - Rate limiting for DoS protection
+    """,
     version="1.0.0",
+    contact={
+        "name": "Student Marketplace Team",
+        "url": "https://github.com/PuvadonKub/Vibe_Coding_Workshop",
+        "email": "support@studentmarketplace.com",
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    terms_of_service="https://studentmarketplace.com/terms",
     docs_url="/docs" if os.getenv("ENVIRONMENT", "development") == "development" else None,
     redoc_url="/redoc" if os.getenv("ENVIRONMENT", "development") == "development" else None,
+    openapi_tags=[
+        {
+            "name": "Authentication",
+            "description": "User authentication endpoints including registration, login, and token management.",
+        },
+        {
+            "name": "Users",
+            "description": "User profile management and account operations.",
+        },
+        {
+            "name": "Products",
+            "description": "Product management including CRUD operations, search, and filtering.",
+        },
+        {
+            "name": "Categories",
+            "description": "Product category management and listing.",
+        },
+        {
+            "name": "Uploads",
+            "description": "File upload endpoints for images and other media.",
+        },
+        {
+            "name": "Health",
+            "description": "API health check and status endpoints.",
+        },
+    ],
 )
 
 # Security middleware
@@ -122,10 +181,100 @@ app.include_router(products.router)
 app.include_router(categories.router)
 app.include_router(uploads.router)
 
-@app.get("/")
+@app.get("/", tags=["Health"], summary="API Root", 
+         description="Get basic API information and available endpoints")
 async def root():
+    """
+    Welcome endpoint providing basic API information.
+    
+    Returns:
+        dict: Basic API information including version, documentation links, and available endpoints
+    """
     return {
         "message": "Welcome to Student Marketplace API",
         "version": "1.0.0",
-        "docs": "/docs"
+        "description": "A secure marketplace API for students to buy and sell items",
+        "documentation": {
+            "swagger_ui": "/docs",
+            "redoc": "/redoc",
+            "openapi_json": "/openapi.json"
+        },
+        "endpoints": {
+            "authentication": "/auth",
+            "users": "/users", 
+            "products": "/products",
+            "categories": "/categories",
+            "uploads": "/uploads",
+            "health": "/health"
+        },
+        "features": [
+            "JWT Authentication",
+            "Rate Limiting", 
+            "Input Validation",
+            "Image Upload",
+            "Advanced Search",
+            "Security Hardening"
+        ]
+    }
+
+@app.get("/health", tags=["Health"], summary="Health Check",
+         description="Check API health and database connectivity")
+async def health_check():
+    """
+    Health check endpoint to verify API and database status.
+    
+    Returns:
+        dict: Health status information
+    """
+    import time
+    from app.database import get_db
+    
+    try:
+        # Check database connectivity
+        db = next(get_db())
+        db.execute("SELECT 1")
+        db_status = "healthy"
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+    
+    return {
+        "status": "healthy" if db_status == "healthy" else "degraded",
+        "timestamp": time.time(),
+        "version": "1.0.0",
+        "database": db_status,
+        "environment": os.getenv("ENVIRONMENT", "development"),
+        "uptime": "API is running"
+    }
+
+@app.get("/api/info", tags=["Health"], summary="API Information",
+         description="Get detailed API information and statistics")  
+async def api_info():
+    """
+    Detailed API information endpoint.
+    
+    Returns:
+        dict: Comprehensive API information
+    """
+    return {
+        "api": {
+            "name": "Student Marketplace API",
+            "version": "1.0.0", 
+            "description": "A secure marketplace API for students",
+            "environment": os.getenv("ENVIRONMENT", "development")
+        },
+        "security": {
+            "authentication": "JWT Bearer Token",
+            "rate_limiting": SLOWAPI_AVAILABLE,
+            "input_validation": True,
+            "cors_enabled": True,
+            "security_headers": True
+        },
+        "features": {
+            "user_management": True,
+            "product_management": True, 
+            "category_management": True,
+            "file_uploads": True,
+            "search_filtering": True,
+            "image_optimization": True
+        }
     }

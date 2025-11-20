@@ -19,8 +19,16 @@ from ..utils.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 
-# Create router
-router = APIRouter(prefix="/auth", tags=["authentication"])
+# Create router with comprehensive documentation
+router = APIRouter(
+    prefix="/auth", 
+    tags=["Authentication"],
+    responses={
+        401: {"description": "Authentication failed"},
+        422: {"description": "Validation error"},
+        500: {"description": "Internal server error"}
+    }
+)
 
 # Security scheme
 security = HTTPBearer()
@@ -114,20 +122,46 @@ async def get_current_user(
     return user
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", 
+    response_model=UserResponse, 
+    status_code=status.HTTP_201_CREATED,
+    summary="Register new user",
+    description="Create a new user account with username, email, and password",
+    responses={
+        201: {
+            "description": "User successfully created",
+            "model": UserResponse,
+        },
+        400: {
+            "description": "Username or email already exists",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Username or email already registered"}
+                }
+            },
+        },
+    },
+)
 async def register_user(user_data: UserCreate, db: Annotated[Session, Depends(get_db)]):
     """
-    Register a new user
+    Register a new user account.
     
-    Args:
-        user_data: User registration data
-        db: Database session
-        
-    Returns:
-        UserResponse: The created user information
-        
-    Raises:
-        HTTPException: If username or email already exists
+    This endpoint creates a new user account with the provided credentials.
+    The password will be securely hashed before storage.
+    
+    **Requirements:**
+    - Username must be unique and 3-50 characters
+    - Email must be valid and unique
+    - Password must meet security requirements
+    
+    **Returns:**
+    - User information (without password)
+    - HTTP 201 on success
+    
+    **Errors:**
+    - 400: Username or email already exists
+    - 422: Validation error (invalid input format)
     """
     # Hash the password
     hashed_password = get_password_hash(user_data.password)
@@ -153,20 +187,44 @@ async def register_user(user_data: UserCreate, db: Annotated[Session, Depends(ge
     return db_user
 
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login", 
+    response_model=Token,
+    summary="User login",
+    description="Authenticate user and receive JWT access token",
+    responses={
+        200: {
+            "description": "Login successful",
+            "model": Token,
+        },
+        401: {
+            "description": "Invalid credentials",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Incorrect username or password"}
+                }
+            },
+        },
+    },
+)
 async def login_user(user_credentials: UserLogin, db: Annotated[Session, Depends(get_db)]):
     """
-    Authenticate user and return access token
+    Authenticate user credentials and return JWT access token.
     
-    Args:
-        user_credentials: User login credentials
-        db: Database session
-        
-    Returns:
-        Token: JWT access token
-        
-    Raises:
-        HTTPException: If authentication fails
+    **Authentication:**
+    - Accepts username or email for login
+    - Password is verified against stored hash
+    - Returns JWT token valid for 30 minutes
+    
+    **Usage:**
+    1. Send username/email and password
+    2. Receive JWT token in response
+    3. Include token in Authorization header: `Bearer <token>`
+    
+    **Security:**
+    - Passwords are never stored in plain text
+    - Failed attempts are logged for security
+    - Tokens expire automatically
     """
     # Authenticate user
     user = authenticate_user(db, user_credentials.username, user_credentials.password)
@@ -180,26 +238,74 @@ async def login_user(user_credentials: UserLogin, db: Annotated[Session, Depends
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/logout")
+@router.post(
+    "/logout",
+    summary="User logout", 
+    description="Logout current user session",
+    responses={
+        200: {
+            "description": "Logout successful",
+            "content": {
+                "application/json": {
+                    "example": {"message": "Successfully logged out"}
+                }
+            },
+        },
+    },
+)
 async def logout_user():
     """
-    Logout user (token invalidation should be handled client-side)
+    Logout the current user session.
     
-    Returns:
-        dict: Success message
+    **Note:** This endpoint provides a standardized logout response.
+    Token invalidation should be handled on the client side by:
+    - Removing the token from local storage
+    - Clearing any cached user data
+    
+    **Best Practices:**
+    - Always call this endpoint before discarding tokens
+    - Clear all client-side authentication data
+    - Redirect to login page after logout
     """
     return {"message": "Successfully logged out"}
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get(
+    "/me", 
+    response_model=UserResponse,
+    summary="Get current user",
+    description="Get authenticated user's profile information",
+    responses={
+        200: {
+            "description": "User profile retrieved successfully",
+            "model": UserResponse,
+        },
+        401: {
+            "description": "Authentication required",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Not authenticated"}
+                }
+            },
+        },
+    },
+)
 async def get_current_user_info(current_user: Annotated[User, Depends(get_current_user)]):
     """
-    Get current authenticated user information
+    Get the current authenticated user's profile information.
     
-    Args:
-        current_user: Current authenticated user
-        
-    Returns:
-        UserResponse: Current user information
+    **Authentication Required:**
+    - Must include valid JWT token in Authorization header
+    - Token format: `Bearer <your_jwt_token>`
+    
+    **Returns:**
+    - User ID, username, email
+    - Account creation and update timestamps
+    - No sensitive information (password excluded)
+    
+    **Usage:**
+    - Verify current user identity
+    - Display user profile information
+    - Check authentication status
     """
     return current_user

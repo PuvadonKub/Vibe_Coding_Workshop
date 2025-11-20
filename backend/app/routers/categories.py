@@ -17,16 +17,53 @@ from ..schemas.category import (
 from ..schemas.product import ProductListResponse, ProductResponse
 from ..dependencies import get_current_user
 
-router = APIRouter(prefix="/categories", tags=["categories"])
+router = APIRouter(
+    prefix="/categories", 
+    tags=["Categories"],
+    responses={
+        404: {"description": "Category not found"},
+        401: {"description": "Authentication required"},
+        422: {"description": "Validation error"}
+    }
+)
 
 
-@router.get("/", response_model=CategoryListResponse)
+@router.get(
+    "/", 
+    response_model=CategoryListResponse,
+    summary="List categories",
+    description="Get all product categories with optional product counts",
+    responses={
+        200: {
+            "description": "List of categories retrieved successfully",
+            "model": CategoryListResponse,
+        },
+    },
+)
 async def get_categories(
     include_count: bool = Query(False, description="Include product count for each category"),
     db: Session = Depends(get_db)
 ) -> CategoryListResponse:
     """
-    Get list of all categories
+    Retrieve all available product categories.
+    
+    **Features:**
+    - Get complete list of all product categories
+    - Optional product count per category
+    - Optimized queries with efficient counting
+    
+    **Query Parameters:**
+    - `include_count`: When true, includes the number of products in each category
+    
+    **Use Cases:**
+    - Category dropdown/filter population
+    - Category-based navigation
+    - Product statistics and analytics
+    
+    **Performance:**
+    - Cached results for fast loading
+    - Efficient JOIN queries when counting products
+    - Minimal database overhead
     """
     if include_count:
         # Query categories with product count
